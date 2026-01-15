@@ -240,4 +240,3 @@ MIT License
 - **后端**: Tauri 2 + Rust 1.92 + Tokio (异步运行时)
 - **字体**: JetBrains Mono (本地字体文件)
 - **构建**: GitHub Actions (跨平台自动构建)
-

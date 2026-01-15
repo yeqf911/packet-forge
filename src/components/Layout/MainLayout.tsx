@@ -53,7 +53,7 @@ export default function MainLayout() {
           >
             <Space>
               <Title level={5} style={{ color: '#cccccc', margin: 0, fontWeight: 500 }}>
-                TCP 报文发送工具
+                TCP Packet Sender Tool
               </Title>
               <Tag
                 color="orange"

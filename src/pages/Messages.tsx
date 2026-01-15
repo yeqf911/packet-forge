@@ -4,40 +4,95 @@ import { SendOutlined } from '@ant-design/icons';
 import { connectionService } from '../services/connectionService';
 import { messageService } from '../services/messageService';
 import ProtocolFieldEditor from '../components/ProtocolFieldEditor';
+import ResponseViewer from '../components/ResponseViewer';
 import type { ProtocolField } from '../types/protocol-simple';
+import { protocolPresets, applyProtocolPreset } from '../utils/protocolPresets';
 
 const { TextArea } = Input;
 
-interface Tab {
+interface TabData {
   key: string;
   label: string;
   closable: boolean;
+  host: string;
+  port: string;
+  isConnected: boolean;
+  requestMode: 'text' | 'hex' | 'protocol';
+  requestData: string;
+  responseData: string;
+  responseTime: number;
+  protocolFields: ProtocolField[];
+  selectedProtocolPreset?: string;
 }
 
 export default function Messages() {
   const [activeTab, setActiveTab] = useState('1');
-  const [tabs, setTabs] = useState<Tab[]>([
-    { key: '1', label: '新连接 1', closable: false },
+  const [tabs, setTabs] = useState<TabData[]>([
+    {
+      key: '1',
+      label: 'New Connection 1',
+      closable: false,
+      host: '127.0.0.1',
+      port: '8080',
+      isConnected: false,
+      requestMode: 'protocol',
+      requestData: '',
+      responseData: '',
+      responseTime: 0,
+      protocolFields: [],
+    },
   ]);
-  const [requestMode, setRequestMode] = useState<'text' | 'hex' | 'protocol'>('text');
-  const [requestData, setRequestData] = useState('');
-  const [responseData, setResponseData] = useState('');
-  const [responseTime, setResponseTime] = useState(0);
-  const [host, setHost] = useState('localhost');
-  const [port, setPort] = useState('8080');
-  const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [protocolFields, setProtocolFields] = useState<ProtocolField[]>([]);
 
   const connectionId = `conn_${activeTab}`;
+  const currentTab = tabs.find(tab => tab.key === activeTab)!;
+
+  const updateTab = (key: string, updates: Partial<TabData>) => {
+    setTabs(tabs.map(tab => (tab.key === key ? { ...tab, ...updates } : tab)));
+  };
+
+  const handleProtocolPresetChange = (presetId: string) => {
+    const preset = protocolPresets.find(p => p.id === presetId);
+    if (preset) {
+      const fields = applyProtocolPreset(preset);
+      updateTab(activeTab, {
+        selectedProtocolPreset: presetId,
+        protocolFields: fields,
+      });
+    }
+  };
 
   const addTab = () => {
     const newKey = String(tabs.length + 1);
-    setTabs([...tabs, { key: newKey, label: `新连接 ${newKey}`, closable: true }]);
+    const previousTab = tabs[tabs.length - 1];
+
+    const newTab: TabData = {
+      key: newKey,
+      label: `New Connection ${newKey}`,
+      closable: true,
+      host: previousTab.host,
+      port: previousTab.port,
+      isConnected: false,
+      requestMode: 'protocol',
+      requestData: '',
+      responseData: '',
+      responseTime: 0,
+      protocolFields: [],
+    };
+
+    setTabs([...tabs, newTab]);
     setActiveTab(newKey);
   };
 
   const removeTab = (targetKey: string) => {
+    // Disconnect if connected
+    const tabToRemove = tabs.find(tab => tab.key === targetKey);
+    if (tabToRemove?.isConnected) {
+      const connId = `conn_${targetKey}`;
+      connectionService.disconnect(connId);
+      connectionService.removeConnection(connId);
+    }
+
     const newTabs = tabs.filter((tab) => tab.key !== targetKey);
     if (activeTab === targetKey && newTabs.length > 0) {
       setActiveTab(newTabs[newTabs.length - 1].key);
@@ -52,8 +107,8 @@ export default function Messages() {
       // Create connection
       await connectionService.createConnection({
         id: connectionId,
-        host,
-        port: parseInt(port),
+        host: currentTab.host,
+        port: parseInt(currentTab.port),
         timeout: 30,
         keep_alive: true,
       });
@@ -61,10 +116,10 @@ export default function Messages() {
       // Connect to server
       await connectionService.connect(connectionId);
 
-      setIsConnected(true);
+      updateTab(activeTab, { isConnected: true });
     } catch (error) {
-      antMessage.error(`连接失败: ${error}`);
-      setIsConnected(false);
+      antMessage.error(`Connection failed: ${error}`);
+      updateTab(activeTab, { isConnected: false });
     } finally {
       setIsLoading(false);
     }
@@ -75,9 +130,9 @@ export default function Messages() {
       setIsLoading(true);
       await connectionService.disconnect(connectionId);
       await connectionService.removeConnection(connectionId);
-      setIsConnected(false);
+      updateTab(activeTab, { isConnected: false });
     } catch (error) {
-      antMessage.error(`断开连接失败: ${error}`);
+      antMessage.error(`Disconnect failed: ${error}`);
     } finally {
       setIsLoading(false);
     }
@@ -86,22 +141,39 @@ export default function Messages() {
   const buildProtocolData = (): string => {
     // Convert protocol fields to hex string
     let hexData = '';
-    for (const field of protocolFields) {
+    for (const field of currentTab.protocolFields) {
       const value = field.value || '';
-      // Try to parse as hex first
-      if (/^[0-9A-Fa-f\s]+$/.test(value)) {
-        // It's hex
-        const cleanHex = value.replace(/\s/g, '');
-        const paddedHex = cleanHex.padEnd(field.length * 2, '0');
-        hexData += paddedHex.substring(0, field.length * 2);
-      } else {
-        // It's text, convert to hex
-        const bytes = new TextEncoder().encode(value);
-        for (let i = 0; i < field.length; i++) {
-          if (i < bytes.length) {
+
+      // Handle variable-length fields
+      if (field.isVariable) {
+        // For variable-length fields, use the value as-is without padding/truncating
+        if (/^[0-9A-Fa-f\s]+$/.test(value)) {
+          // It's hex, just remove spaces and append
+          hexData += value.replace(/\s/g, '');
+        } else {
+          // It's text, convert to hex
+          const bytes = new TextEncoder().encode(value);
+          for (let i = 0; i < bytes.length; i++) {
             hexData += bytes[i].toString(16).padStart(2, '0');
-          } else {
-            hexData += '00';
+          }
+        }
+      } else {
+        // Handle fixed-length fields
+        const fieldLength = field.length || 1;
+        if (/^[0-9A-Fa-f\s]+$/.test(value)) {
+          // It's hex
+          const cleanHex = value.replace(/\s/g, '');
+          const paddedHex = cleanHex.padEnd(fieldLength * 2, '0');
+          hexData += paddedHex.substring(0, fieldLength * 2);
+        } else {
+          // It's text, convert to hex
+          const bytes = new TextEncoder().encode(value);
+          for (let i = 0; i < fieldLength; i++) {
+            if (i < bytes.length) {
+              hexData += bytes[i].toString(16).padStart(2, '0');
+            } else {
+              hexData += '00';
+            }
           }
         }
       }
@@ -110,28 +182,28 @@ export default function Messages() {
   };
 
   const handleSend = async () => {
-    if (!isConnected) {
-      antMessage.warning('请先连接到服务器');
+    if (!currentTab.isConnected) {
+      antMessage.warning('Please connect to server first');
       return;
     }
 
-    let dataToSend = requestData;
-    let mode: 'text' | 'hex' = requestMode === 'protocol' ? 'hex' : requestMode;
+    let dataToSend = currentTab.requestData;
+    let mode: 'text' | 'hex' = currentTab.requestMode === 'protocol' ? 'hex' : currentTab.requestMode;
 
-    if (requestMode === 'protocol') {
-      if (protocolFields.length === 0) {
-        antMessage.warning('请添加协议字段');
+    if (currentTab.requestMode === 'protocol') {
+      if (currentTab.protocolFields.length === 0) {
+        antMessage.warning('Please add protocol fields');
         return;
       }
       dataToSend = buildProtocolData();
-    } else if (!requestData.trim()) {
-      antMessage.warning('请输入要发送的数据');
+    } else if (!currentTab.requestData.trim()) {
+      antMessage.warning('Please enter data to send');
       return;
     }
 
     try {
       setIsLoading(true);
-      setResponseData('');
+      updateTab(activeTab, { responseData: '', responseTime: 0 });
 
       const response = await messageService.sendMessage({
         connection_id: connectionId,
@@ -140,13 +212,15 @@ export default function Messages() {
       });
 
       if (response.success) {
-        setResponseData(response.response_data);
-        setResponseTime(response.response_time_ms);
+        updateTab(activeTab, {
+          responseData: response.response_data,
+          responseTime: response.response_time_ms,
+        });
       } else {
-        antMessage.error(`发送失败: ${response.error}`);
+        antMessage.error(`Send failed: ${response.error}`);
       }
     } catch (error) {
-      antMessage.error(`发送失败: ${error}`);
+      antMessage.error(`Send failed: ${error}`);
     } finally {
       setIsLoading(false);
     }
@@ -154,62 +228,8 @@ export default function Messages() {
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#1e1e1e' }}>
-      {/* Top Toolbar */}
-      <div
-        style={{
-          padding: '8px 16px',
-          background: '#252526',
-          borderBottom: '1px solid #3e3e42',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-        }}
-      >
-        <Select
-          placeholder="选择连接"
-          style={{ width: 200 }}
-          options={[
-            { value: '1', label: 'localhost:8080' },
-            { value: '2', label: '192.168.1.100:9000' },
-          ]}
-        />
-        <Input
-          placeholder="主机地址"
-          style={{ width: 150 }}
-          value={host}
-          onChange={(e) => setHost(e.target.value)}
-          disabled={isConnected}
-        />
-        <Input
-          placeholder="端口"
-          style={{ width: 100 }}
-          value={port}
-          onChange={(e) => setPort(e.target.value)}
-          disabled={isConnected}
-        />
-        {!isConnected ? (
-          <Button type="primary" onClick={handleConnect} loading={isLoading}>
-            连接
-          </Button>
-        ) : (
-          <>
-            <Button
-              type="primary"
-              icon={<SendOutlined />}
-              onClick={handleSend}
-              loading={isLoading}
-            >
-              发送
-            </Button>
-            <Button onClick={handleDisconnect} loading={isLoading}>
-              断开
-            </Button>
-          </>
-        )}
-      </div>
-
-      {/* Tabs */}
-      <div style={{ background: '#252526', borderBottom: '1px solid #3e3e42' }}>
+      {/* Tabs at the top */}
+      <div style={{ background: '#252526', borderBottom: '1px solid #2d2d30' }}>
         <Tabs
           type="editable-card"
           activeKey={activeTab}
@@ -224,7 +244,99 @@ export default function Messages() {
             closable: tab.closable,
           }))}
           style={{ margin: 0 }}
+          className="compressible-tabs"
+          hideAdd={false}
         />
+        <style>{`
+          .compressible-tabs .ant-tabs-nav {
+            margin-bottom: 0;
+            padding-right: 0;
+          }
+          .compressible-tabs .ant-tabs-nav-wrap {
+            overflow: hidden !important;
+          }
+          .compressible-tabs .ant-tabs-nav-list {
+            display: flex !important;
+            width: 100% !important;
+            padding-right: 0 !important;
+          }
+          .compressible-tabs .ant-tabs-tab {
+            flex: 0 1 auto !important;
+            min-width: 60px !important;
+            max-width: none !important;
+            display: flex !important;
+            align-items: center !important;
+            transition: none !important;
+          }
+          .compressible-tabs .ant-tabs-tab + .ant-tabs-tab {
+            margin-left: 2px !important;
+          }
+          .compressible-tabs .ant-tabs-tab-btn {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+            min-width: 0;
+          }
+          .compressible-tabs .ant-tabs-tab-remove {
+            flex-shrink: 0;
+            margin-left: 4px;
+          }
+          .compressible-tabs .ant-tabs-nav-operations {
+            flex-shrink: 0 !important;
+            margin-left: 2px !important;
+          }
+          .compressible-tabs .ant-tabs-add {
+            flex-shrink: 0 !important;
+            margin-left: 2px !important;
+          }
+        `}</style>
+      </div>
+
+      {/* Connection Controls */}
+      <div
+        style={{
+          padding: '8px 16px',
+          background: '#252526',
+          borderBottom: '1px solid #2d2d30',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+        }}
+      >
+        <Input
+          placeholder="Host"
+          style={{ width: 150 }}
+          value={currentTab.host}
+          onChange={(e) => updateTab(activeTab, { host: e.target.value })}
+          disabled={currentTab.isConnected}
+        />
+        <Input
+          placeholder="Port"
+          style={{ width: 100 }}
+          value={currentTab.port}
+          onChange={(e) => updateTab(activeTab, { port: e.target.value })}
+          disabled={currentTab.isConnected}
+        />
+        {!currentTab.isConnected ? (
+          <Button type="primary" onClick={handleConnect} loading={isLoading}>
+            Connect
+          </Button>
+        ) : (
+          <>
+            <Button
+              type="primary"
+              icon={<SendOutlined />}
+              onClick={handleSend}
+              loading={isLoading}
+            >
+              Send
+            </Button>
+            <Button onClick={handleDisconnect} loading={isLoading}>
+              Disconnect
+            </Button>
+          </>
+        )}
       </div>
 
       {/* Split Workspace */}
@@ -235,7 +347,8 @@ export default function Messages() {
             flex: 1,
             display: 'flex',
             flexDirection: 'column',
-            borderBottom: '1px solid #3e3e42',
+            background: '#252526',
+            borderBottom: '1px solid #2d2d30',
             minHeight: 200,
           }}
         >
@@ -243,58 +356,74 @@ export default function Messages() {
             style={{
               padding: '8px 16px',
               background: '#252526',
-              borderBottom: '1px solid #3e3e42',
+              borderBottom: '1px solid #2d2d30',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
             }}
           >
             <Space>
-              <span style={{ color: '#cccccc', fontSize: 13, fontWeight: 500 }}>请求</span>
+              <span style={{ color: '#cccccc', fontSize: 16, fontWeight: 500 }}>Request</span>
               <Select
-                value={requestMode}
-                onChange={setRequestMode}
+                value={currentTab.requestMode}
+                onChange={(value) => updateTab(activeTab, { requestMode: value })}
                 style={{ width: 120 }}
                 options={[
+                  { value: 'protocol', label: 'Protocol' },
                   { value: 'text', label: 'Text' },
                   { value: 'hex', label: 'Hex' },
-                  { value: 'protocol', label: 'Protocol' },
                 ]}
                 size="small"
               />
+              {currentTab.requestMode === 'protocol' && (
+                <>
+                  <span style={{ color: '#858585', fontSize: 16 }}>|</span>
+                  <Select
+                    value={currentTab.selectedProtocolPreset}
+                    onChange={handleProtocolPresetChange}
+                    placeholder="Select protocol preset"
+                    style={{ width: 150 }}
+                    options={protocolPresets.map(preset => ({
+                      value: preset.id,
+                      label: preset.name,
+                    }))}
+                    size="small"
+                    allowClear
+                  />
+                </>
+              )}
             </Space>
             <Space>
               <Button size="small" onClick={() => {
-                if (requestMode === 'protocol') {
-                  setProtocolFields([]);
+                if (currentTab.requestMode === 'protocol') {
+                  updateTab(activeTab, { protocolFields: [] });
                 } else {
-                  setRequestData('');
+                  updateTab(activeTab, { requestData: '' });
                 }
-              }}>清空</Button>
-              <Button size="small">格式化</Button>
+              }}>Clear</Button>
+              <Button size="small">Format</Button>
             </Space>
           </div>
-          <div style={{ flex: 1, padding: 16, overflow: 'auto' }}>
-            {requestMode === 'protocol' ? (
+          <div style={{ flex: 1, padding: 16, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            {currentTab.requestMode === 'protocol' ? (
               <ProtocolFieldEditor
-                fields={protocolFields}
-                onChange={setProtocolFields}
+                fields={currentTab.protocolFields}
+                onChange={(fields) => updateTab(activeTab, { protocolFields: fields })}
               />
             ) : (
               <TextArea
-                value={requestData}
-                onChange={(e) => setRequestData(e.target.value)}
+                value={currentTab.requestData}
+                onChange={(e) => updateTab(activeTab, { requestData: e.target.value })}
                 placeholder={
-                  requestMode === 'text'
-                    ? '输入要发送的文本数据...'
-                    : '输入十六进制数据 (例如: 01 02 03 FF)'
+                  currentTab.requestMode === 'text'
+                    ? 'Enter text data to send...'
+                    : 'Enter hexadecimal data (e.g., 01 02 03 FF)'
                 }
                 style={{
                   height: '100%',
                   fontFamily: 'JetBrains Mono, Consolas, Monaco, monospace',
-                  fontSize: 13,
+                  fontSize: 16,
                   background: '#1e1e1e',
-                  border: '1px solid #3e3e42',
                   color: '#cccccc',
                   resize: 'none',
                 }}
@@ -304,41 +433,28 @@ export default function Messages() {
         </div>
 
         {/* Response Viewer (Bottom Half) */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 200 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#252526', minHeight: 200 }}>
           <div
             style={{
               padding: '8px 16px',
               background: '#252526',
-              borderBottom: '1px solid #3e3e42',
+              borderBottom: '1px solid #2d2d30',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
             }}
           >
             <Space>
-              <span style={{ color: '#cccccc', fontSize: 13, fontWeight: 500 }}>响应</span>
-              <span style={{ color: '#858585', fontSize: 12 }}>{responseTime} ms</span>
+              <span style={{ color: '#cccccc', fontSize: 16, fontWeight: 500 }}>Response</span>
+              <span style={{ color: '#858585', fontSize: 16 }}>{currentTab.responseTime} ms</span>
             </Space>
             <Space>
-              <Button size="small">复制</Button>
-              <Button size="small">保存</Button>
+              <Button size="small">Copy</Button>
+              <Button size="small">Save</Button>
             </Space>
           </div>
-          <div style={{ flex: 1, padding: 16, overflow: 'auto' }}>
-            <TextArea
-              value={responseData}
-              readOnly
-              placeholder="响应数据将显示在这里..."
-              style={{
-                height: '100%',
-                fontFamily: 'JetBrains Mono, Consolas, Monaco, monospace',
-                fontSize: 13,
-                background: '#1e1e1e',
-                border: '1px solid #3e3e42',
-                color: '#4ec9b0',
-                resize: 'none',
-              }}
-            />
+          <div style={{ flex: 1, padding: 16, overflow: 'hidden' }}>
+            <ResponseViewer data={currentTab.responseData} />
           </div>
         </div>
       </div>

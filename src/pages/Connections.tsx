@@ -5,8 +5,8 @@ const { Title } = Typography;
 export default function Connections() {
   return (
     <div style={{ padding: '24px' }}>
-      <Title level={2}>连接管理</Title>
-      <p>连接管理功能正在开发中...</p>
+      <Title level={2}>Connection Management</Title>
+      <p>Connection management feature is under development...</p>
     </div>
   );
 }

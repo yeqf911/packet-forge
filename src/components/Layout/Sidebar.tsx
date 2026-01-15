@@ -17,7 +17,7 @@ export default function Sidebar() {
     {
       key: '/',
       icon: (
-        <Tooltip title="首页" placement="right">
+        <Tooltip title="Home" placement="right">
           <HomeOutlined style={{ fontSize: 20 }} />
         </Tooltip>
       ),
@@ -26,7 +26,7 @@ export default function Sidebar() {
     {
       key: '/connections',
       icon: (
-        <Tooltip title="连接管理" placement="right">
+        <Tooltip title="Connections" placement="right">
           <ApiOutlined style={{ fontSize: 20 }} />
         </Tooltip>
       ),
@@ -35,7 +35,7 @@ export default function Sidebar() {
     {
       key: '/protocols',
       icon: (
-        <Tooltip title="协议配置" placement="right">
+        <Tooltip title="Protocols" placement="right">
           <FileTextOutlined style={{ fontSize: 20 }} />
         </Tooltip>
       ),
@@ -44,7 +44,7 @@ export default function Sidebar() {
     {
       key: '/messages',
       icon: (
-        <Tooltip title="报文发送" placement="right">
+        <Tooltip title="Messages" placement="right">
           <SendOutlined style={{ fontSize: 20 }} />
         </Tooltip>
       ),
@@ -53,7 +53,7 @@ export default function Sidebar() {
     {
       key: '/testing',
       icon: (
-        <Tooltip title="测试套件" placement="right">
+        <Tooltip title="Testing" placement="right">
           <ExperimentOutlined style={{ fontSize: 20 }} />
         </Tooltip>
       ),
@@ -62,7 +62,7 @@ export default function Sidebar() {
     {
       key: '/history',
       icon: (
-        <Tooltip title="历史记录" placement="right">
+        <Tooltip title="History" placement="right">
           <HistoryOutlined style={{ fontSize: 20 }} />
         </Tooltip>
       ),

@@ -119,3 +119,349 @@ button,
 select {
   font-family: 'JetBrains Mono', 'Consolas', 'Monaco', 'Courier New', monospace !important;
 }
+
+/* Flat design - input borders match background */
+.ant-input,
+.ant-input-number,
+.ant-select-selector {
+  border-color: #1e1e1e !important;
+  background-color: #1e1e1e !important;
+  box-shadow: none !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.ant-input:focus,
+.ant-input-number:focus,
+.ant-select-focused .ant-select-selector {
+  border-color: #1e1e1e !important;
+  box-shadow: 0 0 0 1px rgba(255, 108, 55, 0.1) !important;
+  background-color: #1e1e1e !important;
+}
+
+.ant-input:hover,
+.ant-input-number:hover,
+.ant-select:hover .ant-select-selector {
+  border-color: #1e1e1e !important;
+  background-color: #1e1e1e !important;
+}
+
+.ant-input::placeholder,
+.ant-input-number::placeholder {
+  color: #858585 !important;
+}
+
+/* Textarea specific */
+textarea.ant-input {
+  border-color: #1e1e1e !important;
+  background-color: #1e1e1e !important;
+}
+
+textarea.ant-input:focus {
+  border-color: #1e1e1e !important;
+  box-shadow: 0 0 0 1px rgba(255, 108, 55, 0.1) !important;
+  background-color: #1e1e1e !important;
+}
+
+/* Readonly textarea (response viewer) */
+textarea.ant-input[readonly] {
+  background-color: #1e1e1e !important;
+  border-color: #1e1e1e !important;
+  cursor: default;
+  border-radius: 2px !important;
+}
+
+textarea.ant-input[readonly]:hover {
+  background-color: #1e1e1e !important;
+  border-color: #1e1e1e !important;
+}
+
+textarea.ant-input[readonly]:focus {
+  background-color: #1e1e1e !important;
+  border-color: #1e1e1e !important;
+  box-shadow: none !important;
+}
+
+/* Select dropdown */
+.ant-select-dropdown {
+  background-color: #252526 !important;
+  border: 1px solid #2d2d30 !important;
+}
+
+.ant-select-item {
+  color: #cccccc !important;
+}
+
+.ant-select-item-option-selected {
+  background-color: #37373d !important;
+}
+
+.ant-select-item-option-active {
+  background-color: #2d2d30 !important;
+}
+
+/* Button flat design */
+.ant-btn {
+  border-color: transparent !important;
+  box-shadow: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.ant-btn-default {
+  background-color: #3e3e42 !important;
+  color: #cccccc !important;
+  border-color: #3e3e42 !important;
+}
+
+.ant-btn-default:hover {
+  background-color: #4e4e52 !important;
+  border-color: #4e4e52 !important;
+  color: #ffffff !important;
+}
+
+.ant-btn-primary {
+  background-color: #ff6c37 !important;
+  border-color: #ff6c37 !important;
+}
+
+.ant-btn-primary:hover {
+  background-color: #ff7c52 !important;
+  border-color: #ff7c52 !important;
+}
+
+.ant-btn-primary:active {
+  background-color: #e55a2a !important;
+  border-color: #e55a2a !important;
+}
+
+.ant-btn-dashed {
+  border-color: #3e3e42 !important;
+  background-color: transparent !important;
+  color: #cccccc !important;
+  border-style: dashed !important;
+}
+
+.ant-btn-dashed:hover {
+  border-color: #4e4e52 !important;
+  background-color: #3e3e42 !important;
+  color: #ffffff !important;
+}
+
+.ant-btn-sm {
+  border-color: transparent !important;
+}
+
+/* Button with danger type */
+.ant-btn-dangerous {
+  background-color: #d32f2f !important;
+  border-color: #d32f2f !important;
+  color: #ffffff !important;
+}
+
+.ant-btn-dangerous:hover {
+  background-color: #e53935 !important;
+  border-color: #e53935 !important;
+}
+
+/* Protocol field inputs - lighter background when not focused */
+.protocol-field-input,
+.protocol-field-input .ant-input,
+.protocol-field-input .ant-input-number-input {
+  background-color: #2d2d30 !important;
+  border-color: #2d2d30 !important;
+  color: #cccccc !important;
+  transition: all 0.2s ease !important;
+}
+
+.protocol-field-input:hover,
+.protocol-field-input:hover .ant-input,
+.protocol-field-input:hover .ant-input-number-input {
+  background-color: #323235 !important;
+  border-color: #323235 !important;
+}
+
+.protocol-field-input:focus,
+.protocol-field-input:focus .ant-input,
+.protocol-field-input:focus .ant-input-number-input,
+.protocol-field-input.ant-input-focused,
+.protocol-field-input.ant-input-focused .ant-input {
+  background-color: #1e1e1e !important;
+  border-color: #1e1e1e !important;
+  box-shadow: 0 0 0 1px rgba(255, 108, 55, 0.1) !important;
+}
+
+.protocol-field-input::placeholder,
+.protocol-field-input .ant-input::placeholder {
+  color: #858585 !important;
+}
+
+/* Flat checkbox design */
+.ant-checkbox-wrapper {
+  color: #cccccc !important;
+}
+
+.ant-checkbox-inner {
+  background-color: #2d2d30 !important;
+  border-color: #2d2d30 !important;
+  border-radius: 2px !important;
+  transition: all 0.2s ease !important;
+}
+
+.ant-checkbox:hover .ant-checkbox-inner {
+  background-color: #323235 !important;
+  border-color: #323235 !important;
+}
+
+.ant-checkbox-checked .ant-checkbox-inner {
+  background-color: #ff6c37 !important;
+  border-color: #ff6c37 !important;
+}
+
+.ant-checkbox-checked:hover .ant-checkbox-inner {
+  background-color: #ff7c52 !important;
+  border-color: #ff7c52 !important;
+}
+
+.ant-checkbox-input:focus + .ant-checkbox-inner {
+  border-color: #2d2d30 !important;
+  box-shadow: 0 0 0 1px rgba(255, 108, 55, 0.1) !important;
+}
+
+.ant-checkbox-indeterminate .ant-checkbox-inner {
+  background-color: #ff6c37 !important;
+  border-color: #ff6c37 !important;
+}
+
+.ant-checkbox-disabled .ant-checkbox-inner {
+  background-color: #1e1e1e !important;
+  border-color: #1e1e1e !important;
+}
+
+.ant-checkbox-disabled.ant-checkbox-checked .ant-checkbox-inner {
+  background-color: #4e4e52 !important;
+  border-color: #4e4e52 !important;
+}
+
+/* Table row borders - 1px */
+.ant-table-tbody > tr > td {
+  border-top: none !important;
+  border-bottom: 1px solid #2d2d30 !important;
+}
+
+.ant-table-tbody > tr:last-child > td {
+  border-bottom: none !important;
+}
+
+.ant-table-thead > tr > th {
+  border-bottom: 1px solid #2d2d30 !important;
+  border-top: none !important;
+  background: #252526 !important;
+}
+
+.ant-table-cell {
+  border-top: none !important;
+  border-bottom: 1px solid #2d2d30 !important;
+  padding: 8px !important;
+}
+
+.ant-table-thead .ant-table-cell {
+  border-bottom: 1px solid #2d2d30 !important;
+}
+
+.ant-table-small .ant-table-thead > tr > th {
+  padding: 8px !important;
+  background: #252526 !important;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: #2d2d30 !important;
+}
+
+/* Table placeholder (No data) */
+.ant-table-placeholder {
+  border-top: none !important;
+}
+
+.ant-table-placeholder .ant-empty {
+  margin: 20px 0 !important;
+}
+
+.ant-empty-description {
+  color: #858585 !important;
+}
+
+/* Remove table outer border */
+.ant-table {
+  border: none !important;
+}
+
+.ant-table-container {
+  border: none !important;
+}
+
+.ant-table-wrapper {
+  border: none !important;
+}
+
+.ant-table-wrapper {
+  overflow: hidden !important;
+}
+
+.ant-table-container {
+  overflow: hidden !important;
+}
+
+.ant-table-body {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+/* Fixed table header */
+.ant-table-thead {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+  background: #252526 !important;
+}
+
+.ant-table-thead > tr > th {
+  position: sticky !important;
+  top: 0 !important;
+  background: #252526 !important;
+  z-index: 10 !important;
+}
+
+/* Custom scrollbar for table body */
+.ant-table-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ant-table-body::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+.ant-table-body::-webkit-scrollbar-thumb {
+  background: #3e3e42;
+  border-radius: 3px;
+}
+
+.ant-table-body::-webkit-scrollbar-thumb:hover {
+  background: #4e4e52;
+}
+
+/* Protocol field inputs in hovered table rows */
+.ant-table-tbody > tr:hover .protocol-field-input,
+.ant-table-tbody > tr:hover .protocol-field-input .ant-input,
+.ant-table-tbody > tr:hover .protocol-field-input .ant-input-number-input {
+  background-color: #1e1e1e !important;
+  border-color: #1e1e1e !important;
+}
+
+.ant-table-tbody > tr:hover .ant-checkbox-inner {
+  background-color: #1e1e1e !important;
+  border-color: #1e1e1e !important;
+}
+
+.ant-table-tbody > tr:hover .ant-checkbox-checked .ant-checkbox-inner {
+  background-color: #ff6c37 !important;
+  border-color: #ff6c37 !important;
+}

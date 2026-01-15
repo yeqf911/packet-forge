@@ -14,15 +14,15 @@ export default function Home() {
       <Card
         style={{
           background: '#252526',
-          border: '1px solid #3e3e42',
+          border: '1px solid #2d2d30',
           marginBottom: 24,
         }}
       >
         <Title level={2} style={{ color: '#cccccc', marginTop: 0 }}>
-          欢迎使用 TCP 报文发送工具
+          Welcome to TCP Message Tool
         </Title>
         <Paragraph style={{ color: '#858585', fontSize: 14 }}>
-          这是一个功能强大的 TCP 测试工具，类似于 Postman，专为 TCP 协议设计。
+          A powerful TCP testing tool, similar to Postman, designed for TCP protocol.
         </Paragraph>
       </Card>
 
@@ -31,12 +31,12 @@ export default function Home() {
           <Card
             style={{
               background: '#252526',
-              border: '1px solid #3e3e42',
+              border: '1px solid #2d2d30',
               textAlign: 'center',
             }}
           >
             <Statistic
-              title={<span style={{ color: '#858585' }}>活动连接</span>}
+              title={<span style={{ color: '#858585' }}>Active Connections</span>}
               value={0}
               prefix={<ApiOutlined style={{ color: '#ff6c37' }} />}
               valueStyle={{ color: '#cccccc' }}
@@ -47,12 +47,12 @@ export default function Home() {
           <Card
             style={{
               background: '#252526',
-              border: '1px solid #3e3e42',
+              border: '1px solid #2d2d30',
               textAlign: 'center',
             }}
           >
             <Statistic
-              title={<span style={{ color: '#858585' }}>已发送</span>}
+              title={<span style={{ color: '#858585' }}>Messages Sent</span>}
               value={0}
               prefix={<SendOutlined style={{ color: '#4ec9b0' }} />}
               valueStyle={{ color: '#cccccc' }}
@@ -63,12 +63,12 @@ export default function Home() {
           <Card
             style={{
               background: '#252526',
-              border: '1px solid #3e3e42',
+              border: '1px solid #2d2d30',
               textAlign: 'center',
             }}
           >
             <Statistic
-              title={<span style={{ color: '#858585' }}>历史记录</span>}
+              title={<span style={{ color: '#858585' }}>History Records</span>}
               value={0}
               prefix={<HistoryOutlined style={{ color: '#569cd6' }} />}
               valueStyle={{ color: '#cccccc' }}
@@ -79,12 +79,12 @@ export default function Home() {
           <Card
             style={{
               background: '#252526',
-              border: '1px solid #3e3e42',
+              border: '1px solid #2d2d30',
               textAlign: 'center',
             }}
           >
             <Statistic
-              title={<span style={{ color: '#858585' }}>成功率</span>}
+              title={<span style={{ color: '#858585' }}>Success Rate</span>}
               value={0}
               suffix="%"
               prefix={<CheckCircleOutlined style={{ color: '#89d185' }} />}
@@ -97,31 +97,31 @@ export default function Home() {
       <Card
         style={{
           background: '#252526',
-          border: '1px solid #3e3e42',
+          border: '1px solid #2d2d30',
         }}
       >
         <Title level={4} style={{ color: '#cccccc' }}>
-          主要功能
+          Key Features
         </Title>
         <ul style={{ color: '#858585', lineHeight: 2 }}>
           <li>
-            <strong style={{ color: '#cccccc' }}>TCP 连接管理</strong> - 支持多连接并发
+            <strong style={{ color: '#cccccc' }}>TCP Connection Management</strong> - Support multiple concurrent connections
           </li>
           <li>
-            <strong style={{ color: '#cccccc' }}>自定义报文发送</strong> - 支持 Text/Hex/协议模式
+            <strong style={{ color: '#cccccc' }}>Custom Message Sending</strong> - Support Text/Hex/Protocol modes
           </li>
           <li>
-            <strong style={{ color: '#cccccc' }}>可视化协议配置</strong> - 灵活定义协议字段
+            <strong style={{ color: '#cccccc' }}>Visual Protocol Configuration</strong> - Flexible protocol field definition
           </li>
           <li>
-            <strong style={{ color: '#cccccc' }}>完整测试套件</strong> - 自动化测试和断言验证
+            <strong style={{ color: '#cccccc' }}>Complete Test Suite</strong> - Automated testing and assertion validation
           </li>
           <li>
-            <strong style={{ color: '#cccccc' }}>历史记录管理</strong> - 追踪所有通信记录
+            <strong style={{ color: '#cccccc' }}>History Management</strong> - Track all communication records
           </li>
         </ul>
         <Paragraph style={{ color: '#858585', marginTop: 16, marginBottom: 0 }}>
-          请从左侧菜单开始使用。
+          Get started from the left menu.
         </Paragraph>
       </Card>
     </div>
