@@ -1,7 +1,7 @@
 import { Button, Input, InputNumber, Table, Popconfirm, Checkbox } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ProtocolField } from '../types/protocol-simple';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 interface ProtocolFieldEditorProps {
   fields: ProtocolField[];
@@ -10,6 +10,28 @@ interface ProtocolFieldEditorProps {
 
 export default function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
   const [editingFields, setEditingFields] = useState<Record<string, string>>({});
+  const [tableHeight, setTableHeight] = useState<number>(400);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const updateHeight = () => {
+      const container = containerRef.current;
+      if (container) {
+        const height = container.clientHeight;
+        // Subtract: Add Field button area (40px) + table header + borders/padding (additional 20px)
+        setTableHeight(Math.max(100, height - 80));
+      }
+    };
+
+    updateHeight();
+
+    const resizeObserver = new ResizeObserver(updateHeight);
+    resizeObserver.observe(containerRef.current);
+
+    return () => resizeObserver.disconnect();
+  }, []);
 
   // Format hex value with spaces between bytes
   const formatHexValue = (value: string, maxLength?: number): string => {
@@ -194,7 +216,7 @@ export default function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldE
   ];
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div ref={containerRef} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{ marginBottom: 8, flexShrink: 0 }}>
         <Button
           icon={<PlusOutlined />}
@@ -204,21 +226,18 @@ export default function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldE
           Add Field
         </Button>
       </div>
-      <div
-        style={{ flex: 1, overflow: 'hidden', background: '#252526', paddingBottom: '8px', minHeight: 0, display: 'flex', flexDirection: 'column' }}
-      >
-        <Table
-          columns={columns}
-          dataSource={fields}
-          rowKey="id"
-          pagination={false}
-          size="small"
-          scroll={{ y: 600 }}
-          style={{
-            background: '#252526',
-          }}
-        />
-      </div>
+      <Table
+        columns={columns}
+        dataSource={fields}
+        rowKey="id"
+        pagination={false}
+        size="small"
+        scroll={{ y: tableHeight }}
+        style={{
+          background: '#252526',
+          flex: 1,
+        }}
+      />
     </div>
   );
 }
