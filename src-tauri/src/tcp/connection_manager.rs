@@ -113,6 +113,14 @@ impl ConnectionManager {
         let connections = self.connections.lock().await;
         connections.keys().cloned().collect()
     }
+
+    /// Disconnect all connections (called on app shutdown)
+    pub async fn disconnect_all(&self) {
+        let mut connections = self.connections.lock().await;
+        for (_id, mut client) in connections.drain() {
+            let _ = client.disconnect().await;
+        }
+    }
 }
 
 impl Default for ConnectionManager {

@@ -1,6 +1,6 @@
 [package]
-name = "tcp-sender"
-version = "0.1.0"
+name = "PacketForge"
+version = "1.2.0"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"

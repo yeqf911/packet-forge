@@ -10,6 +10,43 @@ import type { ProtocolField } from '../types/protocol-simple';
 
 const { TextArea } = Input;
 
+// localStorage keys
+const MESSAGES_STATE_KEY = 'tcp_sender_messages_state';
+
+// 从 localStorage 加载状态
+const loadState = (): { activeTab: string; tabs: TabData[] } | null => {
+  try {
+    const saved = localStorage.getItem(MESSAGES_STATE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // 重置所有连接状态为 false（TCP 连接已断开）
+      if (parsed.tabs) {
+        parsed.tabs = parsed.tabs.map((tab: TabData) => ({
+          ...tab,
+          isConnected: false,
+        }));
+      }
+      return parsed;
+    }
+  } catch (e) {
+    console.warn('Failed to load messages state:', e);
+  }
+  return null;
+};
+
+// 保存状态到 localStorage
+const saveState = (activeTab: string, tabs: TabData[]) => {
+  try {
+    localStorage.setItem(MESSAGES_STATE_KEY, JSON.stringify({
+      activeTab,
+      tabs,
+      timestamp: Date.now(),
+    }));
+  } catch (e) {
+    console.warn('Failed to save messages state:', e);
+  }
+};
+
 interface TabData {
   key: string;
   label: string;
@@ -26,22 +63,28 @@ interface TabData {
 }
 
 export default function Messages() {
-  const [activeTab, setActiveTab] = useState('1');
-  const [tabs, setTabs] = useState<TabData[]>([
-    {
-      key: '1',
-      label: 'New Connection 1',
-      closable: false,
-      host: '127.0.0.1',
-      port: '8080',
-      isConnected: false,
-      requestMode: 'protocol',
-      requestData: '',
-      responseData: '',
-      responseTime: 0,
-      protocolFields: [],
-    },
-  ]);
+  const [activeTab, setActiveTab] = useState(() => {
+    const saved = loadState();
+    return saved?.activeTab || '1';
+  });
+  const [tabs, setTabs] = useState<TabData[]>(() => {
+    const saved = loadState();
+    return saved?.tabs || [
+      {
+        key: '1',
+        label: 'New Connection 1',
+        closable: false,
+        host: '127.0.0.1',
+        port: '8080',
+        isConnected: false,
+        requestMode: 'protocol',
+        requestData: '',
+        responseData: '',
+        responseTime: 0,
+        protocolFields: [],
+      },
+    ];
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [savedProtocols, setSavedProtocols] = useState<SavedProtocol[]>([]);
 
@@ -51,6 +94,59 @@ export default function Messages() {
       .then(setSavedProtocols)
       .catch(err => console.error('Failed to load protocols:', err));
   }, []);
+
+  // Check and sync connection status on mount
+  useEffect(() => {
+    const syncConnectionStatus = async () => {
+      const updates = await Promise.all(
+        tabs.map(async (tab) => {
+          const connId = `conn_${tab.key}`;
+          try {
+            const isConnected = await connectionService.checkStatus(connId);
+            return { key: tab.key, isConnected };
+          } catch {
+            return { key: tab.key, isConnected: false };
+          }
+        })
+      );
+
+      // Update tabs with actual connection status
+      setTabs(prev => prev.map(tab => {
+        const update = updates.find(u => u.key === tab.key);
+        return update ? { ...tab, isConnected: update.isConnected } : tab;
+      }));
+    };
+
+    syncConnectionStatus();
+  }, []); // Only run on mount
+
+  // Periodically check connection status for current tab
+  useEffect(() => {
+    const checkInterval = setInterval(async () => {
+      const connId = `conn_${activeTab}`;
+      try {
+        const isConnected = await connectionService.checkStatus(connId);
+        // Only update if status changed
+        const currentTab = tabs.find(tab => tab.key === activeTab);
+        if (currentTab && currentTab.isConnected !== isConnected) {
+          updateTab(activeTab, { isConnected });
+        }
+      } catch {
+        // If check fails, assume disconnected
+        const currentTab = tabs.find(tab => tab.key === activeTab);
+        if (currentTab && currentTab.isConnected) {
+          updateTab(activeTab, { isConnected: false });
+        }
+      }
+    }, 2000); // Check every 2 seconds
+
+    return () => clearInterval(checkInterval);
+  }, [activeTab, tabs]);
+
+  // Save state to localStorage whenever tabs or activeTab changes
+  useEffect(() => {
+    saveState(activeTab, tabs);
+  }, [activeTab, tabs]);
 
   const connectionId = `conn_${activeTab}`;
   const currentTab = tabs.find(tab => tab.key === activeTab)!;
@@ -128,6 +224,26 @@ export default function Messages() {
     try {
       setIsLoading(true);
 
+      // Check if connection already exists and is connected
+      let alreadyConnected = false;
+      try {
+        alreadyConnected = await connectionService.checkStatus(connectionId);
+      } catch {
+        // Connection doesn't exist, will create new one
+      }
+
+      if (alreadyConnected) {
+        antMessage.info('Already connected');
+        updateTab(activeTab, { isConnected: true });
+        setIsLoading(false);
+        return;
+      }
+
+      // Clean up any stale connection
+      try {
+        await connectionService.removeConnection(connectionId);
+      } catch {}
+
       // Create connection
       await connectionService.createConnection({
         id: connectionId,
@@ -170,16 +286,15 @@ export default function Messages() {
 
       // Handle variable-length fields
       if (field.isVariable) {
-        // For variable-length fields, use the value as-is without padding/truncating
-        if (/^[0-9A-Fa-f\s]+$/.test(value)) {
-          // It's hex, just remove spaces and append
-          hexData += value.replace(/\s/g, '');
-        } else {
-          // It's text, convert to hex
+        if (field.valueType === 'text') {
+          // Text type - convert to hex
           const bytes = new TextEncoder().encode(value);
           for (let i = 0; i < bytes.length; i++) {
             hexData += bytes[i].toString(16).padStart(2, '0');
           }
+        } else {
+          // Hex type (default) - just remove spaces and append
+          hexData += value.replace(/\s/g, '');
         }
       } else {
         // Handle fixed-length fields

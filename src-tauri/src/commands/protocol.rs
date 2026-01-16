@@ -31,7 +31,7 @@ pub fn list_protocols(db_pool: State<DbPool>) -> DbResult<Vec<Protocol>> {
 
             // Fetch fields for this protocol
             let mut field_stmt = db.conn().prepare(
-                "SELECT id, name, length, is_variable, value
+                "SELECT id, name, length, is_variable, value_type, value
                  FROM protocol_fields
                  WHERE protocol_id = ?1
                  ORDER BY field_order ASC"
@@ -43,7 +43,8 @@ pub fn list_protocols(db_pool: State<DbPool>) -> DbResult<Vec<Protocol>> {
                     name: row.get(1)?,
                     length: row.get(2)?,
                     is_variable: row.get::<_, i32>(3)? == 1,
-                    value: row.get(4)?,
+                    value_type: row.get(4)?,
+                    value: row.get(5)?,
                     description: None,
                 })
             })?
@@ -87,7 +88,7 @@ pub fn get_protocol(db_pool: State<DbPool>, id: String) -> DbResult<Option<Proto
             Ok((id, name, description, created_at, updated_at)) => {
                 // Fetch fields
                 let mut field_stmt = db.conn().prepare(
-                    "SELECT id, name, length, is_variable, value
+                    "SELECT id, name, length, is_variable, value_type, value
                      FROM protocol_fields
                      WHERE protocol_id = ?1
                      ORDER BY field_order ASC"
@@ -99,7 +100,8 @@ pub fn get_protocol(db_pool: State<DbPool>, id: String) -> DbResult<Option<Proto
                         name: row.get(1)?,
                         length: row.get(2)?,
                         is_variable: row.get::<_, i32>(3)? == 1,
-                        value: row.get(4)?,
+                        value_type: row.get(4)?,
+                        value: row.get(5)?,
                         description: None,
                     })
                 })?
@@ -143,14 +145,15 @@ pub fn create_protocol(db_pool: State<DbPool>, request: CreateProtocolRequest) -
             let order = index as i32;
 
             db.conn().execute(
-                "INSERT INTO protocol_fields (id, protocol_id, name, length, is_variable, value, field_order)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                "INSERT INTO protocol_fields (id, protocol_id, name, length, is_variable, value_type, value, field_order)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
                 [
                     &field.id,
                     &id,
                     &field.name,
                     &length_str,
                     &is_var.to_string(),
+                    &field.value_type,
                     &field.value,
                     &order.to_string(),
                 ],
@@ -195,14 +198,15 @@ pub fn update_protocol(db_pool: State<DbPool>, request: UpdateProtocolRequest) -
             let order = index as i32;
 
             db.conn().execute(
-                "INSERT INTO protocol_fields (id, protocol_id, name, length, is_variable, value, field_order)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                "INSERT INTO protocol_fields (id, protocol_id, name, length, is_variable, value_type, value, field_order)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
                 [
                     &field.id,
                     &request.id,
                     &field.name,
                     &length_str,
                     &is_var.to_string(),
+                    &field.value_type,
                     &field.value,
                     &order.to_string(),
                 ],

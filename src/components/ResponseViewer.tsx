@@ -43,10 +43,10 @@ function formatHexString(hex: string): string {
       formatted.push(cleanHex.substr(i, 2));
     }
   }
-  // Group by 16 bytes (8 hex pairs per line)
+  // Group by 16 bytes per line
   const result: string[] = [];
-  for (let i = 0; i < formatted.length; i += 8) {
-    result.push(formatted.slice(i, i + 8).join(' '));
+  for (let i = 0; i < formatted.length; i += 16) {
+    result.push(formatted.slice(i, i + 16).join(' '));
   }
   return result.join('\n');
 }
@@ -82,7 +82,7 @@ export default function ResponseViewer({ data, height = '100%' }: ResponseViewer
             fontFamily: 'JetBrains Mono, Consolas, Monaco, monospace',
             fontSize: 16,
             background: '#1e1e1e',
-            color: '#4ec9b0',
+            color: '#cccccc',
             resize: 'none',
           }}
         />

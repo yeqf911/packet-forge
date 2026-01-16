@@ -63,7 +63,7 @@ export default function MainLayout() {
                   color: '#ff6c37',
                 }}
               >
-                v1.1.0
+                v1.2.0
               </Tag>
             </Space>
           </Header>

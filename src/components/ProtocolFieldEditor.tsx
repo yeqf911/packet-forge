@@ -20,7 +20,6 @@ export default function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldE
       const container = containerRef.current;
       if (container) {
         const height = container.clientHeight;
-        // Subtract: Add Field button area (40px) + table header + borders/padding (additional 20px)
         setTableHeight(Math.max(100, height - 80));
       }
     };
@@ -35,21 +34,40 @@ export default function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldE
 
   // Format hex value with spaces between bytes
   const formatHexValue = (value: string, maxLength?: number): string => {
-    // Remove all non-hex characters
     const cleanHex = value.replace(/[^0-9A-Fa-f]/g, '').toUpperCase();
-
-    // Apply length limit if specified
     const limitedHex = maxLength ? cleanHex.substring(0, maxLength * 2) : cleanHex;
-
-    // Add space between each byte (2 hex characters)
-    const formatted = limitedHex.match(/.{1,2}/g)?.join(' ') || '';
-
-    return formatted;
+    return limitedHex.match(/.{1,2}/g)?.join(' ') || '';
   };
 
   // Parse formatted hex value back to clean hex
   const parseHexValue = (formatted: string): string => {
     return formatted.replace(/\s/g, '').toUpperCase();
+  };
+
+  // Text → Hex: "hello" → "68 65 6C 6C 6F"
+  const textToHex = (text: string): string => {
+    const bytes = new TextEncoder().encode(text);
+    return Array.from(bytes)
+      .map(b => b.toString(16).padStart(2, '0').toUpperCase())
+      .join(' ');
+  };
+
+  // Hex → Text: "68 65 6C 6C 6F" → "hello"
+  const hexToText = (hex: string): string => {
+    const cleanHex = hex.replace(/\s/g, '');
+    if (cleanHex.length === 0) return '';
+    const bytes: number[] = [];
+    for (let i = 0; i < cleanHex.length; i += 2) {
+      const byteValue = parseInt(cleanHex.substr(i, 2), 16);
+      if (isNaN(byteValue)) return hex; // Invalid hex, return original
+      bytes.push(byteValue);
+    }
+    try {
+      const decoder = new TextDecoder('utf-8', { fatal: false });
+      return decoder.decode(new Uint8Array(bytes));
+    } catch {
+      return hex; // Failed, return original
+    }
   };
 
   const addField = () => {
@@ -58,6 +76,7 @@ export default function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldE
       name: `Field${fields.length + 1}`,
       length: 1,
       isVariable: false,
+      valueType: 'text',
       value: '',
     };
     onChange([...fields, newField]);
@@ -72,38 +91,52 @@ export default function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldE
   };
 
   const handleValueChange = (id: string, inputValue: string, field: ProtocolField) => {
-    // For non-variable fields, only accept hex characters (0-9, A-F, a-f, spaces)
+    // For non-variable fields, only accept hex characters
     if (!field.isVariable) {
-      // Filter out non-hex characters (keep only 0-9, A-F, a-f, and spaces)
       const filtered = inputValue.replace(/[^0-9A-Fa-f\s]/g, '');
-
-      // Format as hex with spaces
       const formatted = formatHexValue(filtered, field.length);
       setEditingFields(prev => ({ ...prev, [id]: formatted }));
       updateField(id, { value: parseHexValue(formatted) });
     } else {
-      // For variable fields, check if it's hex or text
-      const clean = inputValue.replace(/\s/g, '');
-      if (/^[0-9A-Fa-f]+$/.test(clean) || clean === '') {
-        // Format as hex
-        const formatted = formatHexValue(inputValue);
+      // For variable fields with hex type, only accept hex
+      if (field.valueType === 'hex') {
+        const filtered = inputValue.replace(/[^0-9A-Fa-f\s]/g, '');
+        const formatted = formatHexValue(filtered);
         setEditingFields(prev => ({ ...prev, [id]: formatted }));
         updateField(id, { value: parseHexValue(formatted) });
       } else {
-        // Text input, store as-is
+        // Text type - accept any input
         setEditingFields(prev => ({ ...prev, [id]: inputValue }));
         updateField(id, { value: inputValue });
       }
     }
   };
 
-  const handleValueBlur = (id: string, _field: ProtocolField) => {
-    // Clear editing state on blur
+  const handleValueBlur = (id: string) => {
     setEditingFields(prev => {
       const newEditing = { ...prev };
       delete newEditing[id];
       return newEditing;
     });
+  };
+
+  const toggleValueType = (id: string) => {
+    const field = fields.find(f => f.id === id);
+    if (field?.isVariable) {
+      const newType = field.valueType === 'text' ? 'hex' : 'text';
+      let newValue = field.value;
+
+      // Text → Hex: 转换并存储纯净 hex
+      if (newType === 'hex' && field.valueType === 'text') {
+        newValue = textToHex(field.value).replace(/\s/g, '');
+      }
+      // Hex → Text: 解码并存储
+      else if (newType === 'text' && field.valueType === 'hex') {
+        newValue = hexToText(field.value);
+      }
+
+      updateField(id, { valueType: newType, value: newValue });
+    }
   };
 
   const deleteField = (id: string) => {
@@ -115,7 +148,7 @@ export default function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldE
       title: 'Field Name',
       dataIndex: 'name',
       key: 'name',
-      width: 150,
+      width: 140,
       render: (text: string, record: ProtocolField) => (
         <Input
           value={text}
@@ -134,7 +167,7 @@ export default function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldE
       render: (isVariable: boolean, record: ProtocolField) => (
         <Checkbox
           checked={isVariable || false}
-          onChange={(e) => updateField(record.id, { isVariable: e.target.checked })}
+          onChange={(e) => updateField(record.id, { isVariable: e.target.checked, valueType: e.target.checked ? 'text' : undefined })}
           style={{ color: '#cccccc' }}
         />
       ),
@@ -169,11 +202,11 @@ export default function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldE
       dataIndex: 'value',
       key: 'value',
       render: (text: string, record: ProtocolField) => {
-        // Determine display value
         let displayValue = editingFields[record.id] !== undefined ? editingFields[record.id] : text;
 
-        // Format hex values for display
-        if (text && /^[0-9A-Fa-f\s]+$/.test(text)) {
+        // Format hex values for display (for non-variable or hex-type fields)
+        const shouldFormatHex = !record.isVariable || record.valueType === 'hex';
+        if (text && shouldFormatHex && /^[0-9A-Fa-f\s]+$/.test(text)) {
           const clean = text.replace(/\s/g, '');
           if (clean.length > 0 && clean.length % 2 === 0) {
             displayValue = editingFields[record.id] !== undefined
@@ -182,15 +215,41 @@ export default function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldE
           }
         }
 
+        const placeholder =
+          record.isVariable && record.valueType === 'text'
+            ? 'Enter text'
+            : 'Enter hex (e.g., 01 02 03)';
+
         return (
-          <Input
-            value={displayValue}
-            onChange={(e) => handleValueChange(record.id, e.target.value, record)}
-            onBlur={() => handleValueBlur(record.id, record)}
-            placeholder={record.isVariable ? "Enter data (text or hex)" : "Enter hex (e.g., 01 02 03)"}
-            size="small"
-            className="protocol-field-input"
-          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Input
+              value={displayValue}
+              onChange={(e) => handleValueChange(record.id, e.target.value, record)}
+              onBlur={() => handleValueBlur(record.id)}
+              placeholder={placeholder}
+              size="small"
+              className="protocol-field-input"
+              style={{ flex: 1 }}
+            />
+            {record.isVariable && (
+              <Button
+                type="text"
+                size="small"
+                onClick={() => toggleValueType(record.id)}
+                style={{
+                  padding: '0 8px',
+                  height: 25,
+                  fontSize: 12,
+                  minWidth: 40,
+                  background: record.valueType === 'text' ? '#3e3e42' : '#2d2d30',
+                  color: record.valueType === 'text' ? '#cccccc' : '#858585',
+                  border: '1px solid #3e3e42',
+                }}
+              >
+                {record.valueType === 'text' ? 'Text' : 'Hex'}
+              </Button>
+            )}
+          </div>
         );
       },
     },
@@ -242,4 +301,3 @@ export default function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldE
     </div>
   );
 }
- 
