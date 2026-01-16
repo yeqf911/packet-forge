@@ -2,6 +2,7 @@ import { Layout, Typography, Space, Tag, Select } from 'antd';
 import { Routes, Route } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useZoom, ZOOM_LEVELS } from '../../contexts/ZoomContext';
+import { useFontSize, FONT_SIZE_LEVELS } from '../../contexts/FontSizeContext';
 import { versionService } from '../../services/versionService';
 import Sidebar from './Sidebar';
 import Connections from '../../pages/Connections';
@@ -15,6 +16,7 @@ const { Title } = Typography;
 
 export default function MainLayout() {
   const { zoom, setZoom } = useZoom();
+  const { fontSize, setFontSize } = useFontSize();
   const [appVersion, setAppVersion] = useState('1.0.0');
 
   useEffect(() => {
@@ -79,7 +81,7 @@ export default function MainLayout() {
               </Tag>
             </Space>
             <Space>
-              <span style={{ color: '#858585', fontSize: 14 }}>Zoom:</span>
+              <span style={{ color: '#858585' }}>Zoom:</span>
               <Select
                 value={zoom}
                 onChange={setZoom}
@@ -88,6 +90,17 @@ export default function MainLayout() {
                 options={ZOOM_LEVELS.map(level => ({
                   label: `${level}%`,
                   value: level,
+                }))}
+              />
+              <span style={{ color: '#858585' }}>Font:</span>
+              <Select
+                value={fontSize}
+                onChange={setFontSize}
+                style={{ width: 70 }}
+                size="small"
+                options={FONT_SIZE_LEVELS.map(size => ({
+                  label: `${size}px`,
+                  value: size,
                 }))}
               />
             </Space>

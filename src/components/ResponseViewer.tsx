@@ -81,7 +81,7 @@ export default function ResponseViewer({ data, height = '100%' }: ResponseViewer
             flex: 1,
             fontFamily: 'JetBrains Mono, Consolas, Monaco, monospace',
             background: '#1e1e1e',
-            color: '#cccccc',
+            color: '#858585',
             resize: 'none',
           }}
         />
@@ -108,7 +108,7 @@ export default function ResponseViewer({ data, height = '100%' }: ResponseViewer
             flex: 1,
             fontFamily: 'JetBrains Mono, Consolas, Monaco, monospace',
             background: '#1e1e1e',
-            color: '#cccccc',
+            color: '#27AE60',
             resize: 'none',
           }}
         />

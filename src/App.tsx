@@ -3,11 +3,13 @@ import { BrowserRouter as Router } from 'react-router-dom';
 import { ConfigProvider, theme } from 'antd';
 import enUS from 'antd/locale/en_US';
 import { ZoomProvider, useZoom } from './contexts/ZoomContext';
+import { FontSizeProvider, useFontSize } from './contexts/FontSizeContext';
 import MainLayout from './components/Layout/MainLayout';
 import './App.css';
 
 function AppContent() {
   const { zoom } = useZoom();
+  const { fontSize } = useFontSize();
 
   useEffect(() => {
     // Apply zoom to body element
@@ -24,7 +26,7 @@ function AppContent() {
           colorBgContainer: '#1e1e1e',
           colorBgElevated: '#252526',
           borderRadius: 2,
-          fontSize: 14,
+          fontSize,
         },
         components: {
           Layout: {
@@ -75,9 +77,11 @@ function AppContent() {
 
 function App() {
   return (
-    <ZoomProvider>
-      <AppContent />
-    </ZoomProvider>
+    <FontSizeProvider>
+      <ZoomProvider>
+        <AppContent />
+      </ZoomProvider>
+    </FontSizeProvider>
   );
 }
 
