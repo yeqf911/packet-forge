@@ -288,9 +288,9 @@ function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
                 onClick={() => toggleValueType(record.id)}
                 style={{
                   padding: '0 8px',
-                  height: 24,
-                  fontSize: 12,
-                  minWidth: 40,
+                  height: 20,
+                  fontSize: fontSize-2,
+                  minWidth: 46,
                   background: record.valueType === 'text' ? '#3e3e42' : '#2d2d30',
                   color: record.valueType === 'text' ? '#cccccc' : '#858585',
                   border: '1px solid #3e3e42',

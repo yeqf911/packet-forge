@@ -173,10 +173,26 @@ export default function Messages() {
     try {
       const protocol = await protocolService.getProtocol(protocolId);
       if (protocol) {
+        // Calculate byte length for variable fields
+        const calculateByteLength = (value: string, valueType: 'text' | 'hex'): number => {
+          if (!value) return 0;
+          if (valueType === 'text') {
+            return new TextEncoder().encode(value).length;
+          } else {
+            const cleanHex = value.replace(/\s/g, '');
+            return Math.floor(cleanHex.length / 2);
+          }
+        };
+
         // Convert saved protocol fields to tab fields with new IDs
+        // Also recalculate length for variable fields
         const fields = protocol.fields.map((field, index) => ({
           ...field,
           id: `field_${Date.now()}_${index}`,
+          // Recalculate length for variable fields based on current value
+          length: field.isVariable
+            ? calculateByteLength(field.value || '', field.valueType || 'text')
+            : field.length,
         }));
         updateTab(activeTab, {
           selectedProtocolPreset: protocolId,
@@ -542,9 +558,9 @@ export default function Messages() {
             <Space>
               <Button size="small" onClick={() => {
                 if (currentTab.requestMode === 'protocol') {
-                  updateTab(activeTab, { protocolFields: [] });
+                  updateTab(activeTab, { protocolFields: [], responseData: '', responseTime: 0 });
                 } else {
-                  updateTab(activeTab, { requestData: '' });
+                  updateTab(activeTab, { requestData: '', responseData: '', responseTime: 0 });
                 }
               }}>Clear</Button>
               <Button size="small">Format</Button>
