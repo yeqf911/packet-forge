@@ -7,7 +7,6 @@ import { protocolService, Protocol as SavedProtocol } from '../services/protocol
 import ProtocolFieldEditor from '../components/ProtocolFieldEditor';
 import ProtocolHexPreview from '../components/ProtocolHexPreview';
 import ResponseViewer from '../components/ResponseViewer';
-import { useFontSize } from '../contexts/FontSizeContext';
 import type { ProtocolField } from '../types/protocol-simple';
 
 const { TextArea } = Input;
@@ -65,10 +64,6 @@ interface TabData {
 }
 
 export default function Messages() {
-  const { fontSize } = useFontSize();
-  // 计算 HexPreview 容器宽度（与 ProtocolHexPreview 中的计算一致）
-  const hexPreviewWidth = Math.ceil(75 * fontSize * 0.6 + 16);
-
   const [activeTab, setActiveTab] = useState(() => {
     const saved = loadState();
     return saved?.activeTab || '1';

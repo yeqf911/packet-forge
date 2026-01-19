@@ -1,7 +1,7 @@
 import { Button, Input, InputNumber, Table, Popconfirm, Checkbox, Tooltip } from 'antd';
 import { PlusOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined, PlusCircleOutlined } from '@ant-design/icons';
 import type { ProtocolField } from '../types/protocol-simple';
-import { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
+import { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { useFontSize } from '../contexts/FontSizeContext';
 
 interface ProtocolFieldEditorProps {
@@ -426,7 +426,7 @@ function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
 		}}>
       <div style={{ 
 			flexShrink: 0,
-			paddingBotom: 0,
+			paddingBottom: 0,
 			paddingTop: 8,
 			paddingLeft: 8
 		}}>

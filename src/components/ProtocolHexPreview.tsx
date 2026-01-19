@@ -116,7 +116,6 @@ export default function ProtocolHexPreview({ hexData }: ProtocolHexPreviewProps)
     
       {/* Header */}
       <div style={{
-        padding: '0px 0px',
         borderBottom: '0px solid #2d2d30',
         display: 'flex',
         justifyContent: 'space-between',
