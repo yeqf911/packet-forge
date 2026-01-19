@@ -128,7 +128,7 @@ export default function ResponseViewer({ data }: ResponseViewerProps) {
         {/* Header */}
         <div style={{
           padding: '8px',
-          borderBottom: '1px solid #2d2d30',
+          borderBottom: '0px solid #2d2d30',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -143,7 +143,7 @@ export default function ResponseViewer({ data }: ResponseViewerProps) {
             style={{ color: isTextEmpty ? '#555555' : '#cccccc', fontSize: fontSize - 2 }}
           >
             Copy
-          </Button>
+          </Button>还是
         </div>
 
         {/* Content - 使用calc计算高度，确保Footer可见 */}
@@ -199,7 +199,7 @@ export default function ResponseViewer({ data }: ResponseViewerProps) {
         {/* Header */}
         <div style={{
           padding: '8px',
-          borderBottom: '1px solid #2d2d30',
+          borderBottom: '0px solid #2d2d30',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',

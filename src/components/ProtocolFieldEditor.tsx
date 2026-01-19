@@ -2,6 +2,7 @@ import { Button, Input, InputNumber, Table, Popconfirm, Checkbox, Tooltip } from
 import { PlusOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined, PlusCircleOutlined } from '@ant-design/icons';
 import type { ProtocolField } from '../types/protocol-simple';
 import { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
+import { useFontSize } from '../contexts/FontSizeContext';
 
 interface ProtocolFieldEditorProps {
   fields: ProtocolField[];
@@ -9,6 +10,7 @@ interface ProtocolFieldEditorProps {
 }
 
 function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
+  const { fontSize } = useFontSize();
   const [editingFields, setEditingFields] = useState<Record<string, string>>({});
 
   // Use ref to store fields and onChange to avoid columns re-creation
@@ -385,22 +387,43 @@ function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
           flex: 1,
           minHeight: 0,
           maxHeight: 250,
-          overflow: 'auto',
+          overflow: 'hidden',
           background: '#252526',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
-        <Table
-          key="protocol-fields-table"
-          columns={columns}
-          dataSource={fields}
-          rowKey="id"
-          pagination={false}
-          size="small"
-          style={{
-            background: '#252526',
-          }}
-          tableLayout="fixed"
-        />
+        <div style={{
+          display: 'flex',
+          borderBottom: '0px solid #3e3e42',
+          background: '#252526',
+          flexShrink: 0,
+        }}>
+          <div style={{ width: 140, padding: '8px', color: '#cccccc', fontSize, fontWeight: 500 }}>Field Name</div>
+          <div style={{ width: 100, padding: '8px', color: '#cccccc', fontSize, fontWeight: 500 }}>Variable</div>
+          <div style={{ width: 80, padding: '8px', color: '#cccccc', fontSize, fontWeight: 500 }}>Length</div>
+          <div style={{ flex: 1, padding: '8px', color: '#cccccc', fontSize, fontWeight: 500 }}>Value</div>
+          <div style={{ width: 100, padding: '8px', color: '#cccccc', fontSize, fontWeight: 500 }}>Actions</div>
+        </div>
+        <div style={{
+          flex: 1,
+          overflow: 'auto',
+          background: '#252526',
+        }}>
+          <Table
+            key="protocol-fields-table"
+            columns={columns}
+            dataSource={fields}
+            rowKey="id"
+            pagination={false}
+            size="small"
+            showHeader={false}
+            style={{
+              background: '#252526',
+            }}
+            tableLayout="fixed"
+          />
+        </div>
       </div>
     </div>
   );

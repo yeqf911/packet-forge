@@ -96,12 +96,13 @@ export default function ProtocolHexPreview({ hexData }: ProtocolHexPreviewProps)
       background: '#252526',
     }}>
     	<div style={{
-      	  padding: '0px 8px',
-      	  borderBottom: '1px solid #2d2d30',
+      	  //padding: '0px 8px',
+      	  borderBottom: '0px solid #2d2d30',
       	  display: 'flex',
       	  justifyContent: 'space-between',
       	  alignItems: 'center',
       	  flexShrink: 0,
+		  //paddingTop: 2,
 	   	  //background: '#ff00ff',
     	}}>
          <Button
@@ -115,13 +116,13 @@ export default function ProtocolHexPreview({ hexData }: ProtocolHexPreviewProps)
       {/* Header */}
       <div style={{
         padding: '0px 8px',
-        borderBottom: '1px solid #2d2d30',
+        borderBottom: '0px solid #2d2d30',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         flexShrink: 0,
 		 //background: '#ff00ff',
-		 padding: '6px 0px 8px 8px'
+		 padding: '10px 0px 8px 8px'
       }}>
         <span style={{ color: '#cccccc', fontSize, fontWeight: 500}}>Hex Preview</span>
         <Button
