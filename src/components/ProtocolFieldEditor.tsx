@@ -60,6 +60,36 @@ function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
     }
   };
 
+  // 将 text 或 hex 值转换为纯净 hex 字符串
+  const toCleanHex = (value: string, valueType?: 'text' | 'hex'): string => {
+    if (!value) return '';
+
+    if (valueType === 'text') {
+      const bytes = new TextEncoder().encode(value);
+      return Array.from(bytes)
+        .map(b => b.toString(16).padStart(2, '0').toUpperCase())
+        .join('');
+    }
+    // 已经是 hex，清理空格和非 hex 字符
+    return value.replace(/[^0-9A-Fa-f]/g, '').toUpperCase();
+  };
+
+  // 根据 targetLength 截减或填充 hex 值（用于非 Variable 字段）
+  const adjustHexToLength = (hex: string, targetLength: number): string => {
+    const cleanHex = hex.replace(/[^0-9A-Fa-f]/g, '').toUpperCase();
+    const targetBytes = Math.max(1, targetLength);
+    const currentBytes = Math.floor(cleanHex.length / 2);
+
+    if (currentBytes > targetBytes) {
+      // 截减：保留前 targetBytes 个字节
+      return cleanHex.substring(0, targetBytes * 2);
+    } else if (currentBytes < targetBytes) {
+      // 填充：在末尾添加 00 字节
+      return cleanHex + '00'.repeat(targetBytes - currentBytes);
+    }
+    return cleanHex;
+  };
+
   const addField = () => {
     const currentFields = fieldsRef.current;
     const newField: ProtocolField = {
@@ -212,14 +242,30 @@ function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
         <Checkbox
           checked={isVariable || false}
           onChange={(e) => {
-            const updates: Partial<ProtocolField> = {
-              isVariable: e.target.checked,
-              valueType: e.target.checked ? 'text' : undefined,
-            };
-            // 如果勾选为 variable，更新长度为实际字节长度
-            if (e.target.checked) {
-              updates.length = calculateByteLength(record.value || '', 'text', true);
+            const isChecked = e.target.checked;
+            const updates: Partial<ProtocolField> = { isVariable: isChecked };
+
+            if (isChecked) {
+              // 勾选 Variable：将 hex 转换为 text
+              updates.valueType = 'text';
+
+              if (record.value) {
+                const textValue = hexToText(record.value);
+                updates.value = textValue;
+                updates.length = calculateByteLength(textValue, 'text', true);
+              } else {
+                updates.value = '';
+                updates.length = 0;
+              }
+            } else {
+              // 取消勾选 Variable：将 text/hex 转换为纯净 hex
+              updates.valueType = undefined;
+
+              const cleanHex = toCleanHex(record.value, record.valueType);
+              updates.value = cleanHex;
+              updates.length = cleanHex ? Math.floor(cleanHex.length / 2) : 1;
             }
+
             updateField(record.id, updates);
           }}
           style={{ color: '#cccccc' }}
@@ -237,7 +283,17 @@ function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
         ) : (
           <InputNumber
             value={length}
-            onChange={(value) => updateField(record.id, { length: value || 1 })}
+            onChange={(value) => {
+              const newLength = value || 1;
+              const updates: Partial<ProtocolField> = { length: newLength };
+
+              // 非 Variable 字段：调整值以匹配新长度
+              if (record.value) {
+                updates.value = adjustHexToLength(record.value, newLength);
+              }
+
+              updateField(record.id, updates);
+            }}
             min={1}
             max={1024}
             size="small"
