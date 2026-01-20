@@ -31,20 +31,26 @@ pub fn list_protocols(db_pool: State<DbPool>) -> DbResult<Vec<Protocol>> {
 
             // Fetch fields for this protocol
             let mut field_stmt = db.conn().prepare(
-                "SELECT id, name, length, is_variable, value_type, value
+                "SELECT id, name, length, is_variable, value_type, value_format, value
                  FROM protocol_fields
                  WHERE protocol_id = ?1
                  ORDER BY field_order ASC"
             )?;
 
             let fields = field_stmt.query_map([&id], |row| {
+                let value_format: Option<String> = row.get(5)?;
                 Ok(ProtocolField {
                     id: row.get(0)?,
                     name: row.get(1)?,
                     length: row.get(2)?,
                     is_variable: row.get::<_, i32>(3)? == 1,
                     value_type: row.get(4)?,
-                    value: row.get(5)?,
+                    value_format: if value_format.is_some() && !value_format.as_ref().unwrap().is_empty() {
+                        Some(value_format.unwrap())
+                    } else {
+                        None
+                    },
+                    value: row.get(6)?,
                     description: None,
                 })
             })?
@@ -88,20 +94,26 @@ pub fn get_protocol(db_pool: State<DbPool>, id: String) -> DbResult<Option<Proto
             Ok((id, name, description, created_at, updated_at)) => {
                 // Fetch fields
                 let mut field_stmt = db.conn().prepare(
-                    "SELECT id, name, length, is_variable, value_type, value
+                    "SELECT id, name, length, is_variable, value_type, value_format, value
                      FROM protocol_fields
                      WHERE protocol_id = ?1
                      ORDER BY field_order ASC"
                 )?;
 
                 let fields = field_stmt.query_map([&id], |row| {
+                    let value_format: Option<String> = row.get(5)?;
                     Ok(ProtocolField {
                         id: row.get(0)?,
                         name: row.get(1)?,
                         length: row.get(2)?,
                         is_variable: row.get::<_, i32>(3)? == 1,
                         value_type: row.get(4)?,
-                        value: row.get(5)?,
+                        value_format: if value_format.is_some() && !value_format.as_ref().unwrap().is_empty() {
+                            Some(value_format.unwrap())
+                        } else {
+                            None
+                        },
+                        value: row.get(6)?,
                         description: None,
                     })
                 })?
@@ -143,10 +155,11 @@ pub fn create_protocol(db_pool: State<DbPool>, request: CreateProtocolRequest) -
             let length_str = field.length.map(|l: i32| l.to_string()).unwrap_or_else(|| "0".to_string());
             let is_var = if field.is_variable { 1 } else { 0 };
             let order = index as i32;
+            let value_fmt = field.value_format.as_deref().unwrap_or("");
 
             db.conn().execute(
-                "INSERT INTO protocol_fields (id, protocol_id, name, length, is_variable, value_type, value, field_order)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                "INSERT INTO protocol_fields (id, protocol_id, name, length, is_variable, value_type, value_format, value, field_order)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
                 [
                     &field.id,
                     &id,
@@ -154,6 +167,7 @@ pub fn create_protocol(db_pool: State<DbPool>, request: CreateProtocolRequest) -
                     &length_str,
                     &is_var.to_string(),
                     &field.value_type,
+                    value_fmt,
                     &field.value,
                     &order.to_string(),
                 ],
@@ -196,10 +210,11 @@ pub fn update_protocol(db_pool: State<DbPool>, request: UpdateProtocolRequest) -
             let length_str = field.length.map(|l: i32| l.to_string()).unwrap_or_else(|| "0".to_string());
             let is_var = if field.is_variable { 1 } else { 0 };
             let order = index as i32;
+            let value_fmt = field.value_format.as_deref().unwrap_or("");
 
             db.conn().execute(
-                "INSERT INTO protocol_fields (id, protocol_id, name, length, is_variable, value_type, value, field_order)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                "INSERT INTO protocol_fields (id, protocol_id, name, length, is_variable, value_type, value_format, value, field_order)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
                 [
                     &field.id,
                     &request.id,
@@ -207,6 +222,7 @@ pub fn update_protocol(db_pool: State<DbPool>, request: UpdateProtocolRequest) -
                     &length_str,
                     &is_var.to_string(),
                     &field.value_type,
+                    value_fmt,
                     &field.value,
                     &order.to_string(),
                 ],

@@ -10,6 +10,8 @@ pub struct ProtocolField {
     pub is_variable: bool,
     #[serde(rename = "valueType", default)]
     pub value_type: String, // "text" or "hex"
+    #[serde(rename = "valueFormat", skip_serializing_if = "Option::is_none")]
+    pub value_format: Option<String>, // "dec" or "hex" for non-variable fields
     pub value: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
@@ -23,6 +25,7 @@ impl Default for ProtocolField {
             length: None,
             is_variable: false,
             value_type: "hex".to_string(),
+            value_format: None,
             value: String::new(),
             description: None,
         }
