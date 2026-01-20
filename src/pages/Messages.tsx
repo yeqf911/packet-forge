@@ -493,6 +493,7 @@ export default function Messages() {
 
       const value = field.value || '';
 
+
       // Handle variable-length fields
       if (field.isVariable) {
         if (field.valueType === 'text') {
@@ -536,6 +537,29 @@ export default function Messages() {
       }
     }
     return hexData;
+  };
+
+  // Build hex data for preview in text/hex mode
+  const buildPreviewHexData = (): string => {
+    if (currentTab.requestMode === 'text') {
+      // Convert text to hex
+      const text = currentTab.requestData || '';
+      const bytes = new TextEncoder().encode(text);
+      let hex = '';
+      for (let i = 0; i < bytes.length; i++) {
+        hex += bytes[i].toString(16).padStart(2, '0').toUpperCase();
+      }
+      return hex;
+    } else if (currentTab.requestMode === 'hex') {
+      // Clean hex string (remove spaces and convert to uppercase)
+      const cleanHex = (currentTab.requestData || '').replace(/\s/g, '').toUpperCase();
+      // Validate it's hex
+      if (/^[0-9A-Fa-f]*$/.test(cleanHex)) {
+        return cleanHex;
+      }
+      return '';
+    }
+    return '';
   };
 
   const handleSend = async () => {
@@ -808,42 +832,47 @@ export default function Messages() {
 					flexDirection: 'column',
 					minHeight: 0,
 				}}>
-            {currentTab.requestMode === 'protocol' ? (
-              <div style={{ display: 'flex', gap: 8, height: '100%', minHeight: 0, paddingBottom: '8px' }}>
-                {/* Left: Field Editor (自适应) */}
-                <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            {/* Two-column layout for all modes */}
+            <div style={{ display: 'flex', gap: 8, height: '100%', minHeight: 0, paddingBottom: '8px' }}>
+              {/* Left: Input area (自适应) */}
+              <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                {currentTab.requestMode === 'protocol' ? (
                   <ProtocolFieldEditor
                     fields={currentTab.protocolFields}
                     onChange={(fields) => updateTab(activeTab, { protocolFields: fields })}
                   />
-                </div>
-                {/* Right: Hex Preview (动态宽度) */}
-                <div style={{
+                ) : (
+                  <TextArea
+                    value={currentTab.requestData}
+                    onChange={(e) => updateTab(activeTab, { requestData: e.target.value })}
+                    placeholder={
+                      currentTab.requestMode === 'text'
+                        ? 'Enter text data to send...'
+                        : 'Enter hexadecimal data (e.g., 01 02 03 FF)'
+                    }
+                    style={{
+                      height: '100%',
+                      fontFamily: 'JetBrains Mono, Consolas, Monaco, monospace',
+                      background: '#1e1e1e',
+                      color: '#cccccc',
+                      resize: 'none',
+                    }}
+                  />
+                )}
+              </div>
+              {/* Right: Hex Preview (动态宽度) */}
+              <div style={{
 						overflow: 'hidden',
 						flexShrink: 0,
 						marginRight: 8,
 					}}>
-                  <ProtocolHexPreview hexData={buildProtocolData()} />
-                </div>
+                  <ProtocolHexPreview hexData={
+                    currentTab.requestMode === 'protocol'
+                      ? buildProtocolData()
+                      : buildPreviewHexData()
+                  } />
               </div>
-            ) : (
-              <TextArea
-                value={currentTab.requestData}
-                onChange={(e) => updateTab(activeTab, { requestData: e.target.value })}
-                placeholder={
-                  currentTab.requestMode === 'text'
-                    ? 'Enter text data to send...'
-                    : 'Enter hexadecimal data (e.g., 01 02 03 FF)'
-                }
-                style={{
-                  height: '100%',
-                  fontFamily: 'JetBrains Mono, Consolas, Monaco, monospace',
-                  background: '#1e1e1e',
-                  color: '#cccccc',
-                  resize: 'none',
-                }}
-              />
-            )}
+            </div>
           </div>
         </div>
 
