@@ -60,6 +60,37 @@ function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
     }
   };
 
+  // Hex → Dec: "FF 01" → "65281" (解析为大端序整数)
+  const hexToDec = (hex: string): string => {
+    const cleanHex = hex.replace(/\s/g, '');
+    if (!cleanHex) return '';
+    try {
+      return BigInt('0x' + cleanHex).toString();
+    } catch {
+      return '';
+    }
+  };
+
+  // Dec → Hex: "65281" → "FF 01" (大端序，前面补零)
+  const decToHex = (dec: string, targetLength: number): string => {
+    if (!dec) return '';
+    try {
+      const num = BigInt(dec);
+      const maxBytes = targetLength;
+      const hexStr = num.toString(16).toUpperCase().padStart(maxBytes * 2, '0');
+      // 截断到目标长度（保留低位）
+      const truncated = hexStr.slice(-maxBytes * 2);
+      return truncated.match(/.{1,2}/g)?.join(' ') || '';
+    } catch {
+      return '';
+    }
+  };
+
+  // 计算十进制数的最大值
+  const getMaxDecValue = (length: number): string => {
+    return (BigInt(2) ** BigInt(length * 8) - BigInt(1)).toString();
+  };
+
   // 将 text 或 hex 值转换为纯净 hex 字符串
   const toCleanHex = (value: string, valueType?: 'text' | 'hex'): string => {
     if (!value) return '';
@@ -97,6 +128,7 @@ function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
       name: `Field${currentFields.length + 1}`,
       length: 1,
       isVariable: false,
+      valueFormat: 'dec',
       valueType: 'text',
       value: '',
     };
@@ -129,12 +161,20 @@ function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
   };
 
   const handleValueChange = useCallback((id: string, inputValue: string, field: ProtocolField) => {
-    // For non-variable fields, only accept hex characters
+    // For non-variable fields
     if (!field.isVariable) {
-      const filtered = inputValue.replace(/[^0-9A-Fa-f\s]/g, '');
-      const formatted = formatHexValue(filtered, field.length);
-      setEditingFields(prev => ({ ...prev, [id]: formatted }));
-      updateField(id, { value: parseHexValue(formatted) });
+      if (field.valueFormat === 'dec') {
+        // DEC 模式：只接受数字
+        const filtered = inputValue.replace(/[^0-9]/g, '');
+        setEditingFields(prev => ({ ...prev, [id]: filtered }));
+        updateField(id, { value: filtered });
+      } else {
+        // HEX 模式：只接受 hex 字符
+        const filtered = inputValue.replace(/[^0-9A-Fa-f\s]/g, '');
+        const formatted = formatHexValue(filtered, field.length);
+        setEditingFields(prev => ({ ...prev, [id]: formatted }));
+        updateField(id, { value: parseHexValue(formatted) });
+      }
     } else {
       // For variable fields with hex type, only accept hex
       if (field.valueType === 'hex') {
@@ -181,6 +221,24 @@ function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
     }
   }, []);
 
+  const toggleValueFormat = useCallback((id: string) => {
+    const field = fieldsRef.current.find(f => f.id === id);
+    if (!field || field.isVariable) return;
+
+    const newFormat = (field.valueFormat === 'hex') ? 'dec' : 'hex';
+    let newValue = field.value;
+
+    if (newFormat === 'dec') {
+      // Hex → Dec
+      newValue = hexToDec(field.value);
+    } else {
+      // Dec → Hex
+      newValue = decToHex(field.value, field.length || 1).replace(/\s/g, '');
+    }
+
+    updateField(id, { valueFormat: newFormat, value: newValue });
+  }, []);
+
   const deleteField = useCallback((id: string) => {
     onChangeRef.current(fieldsRef.current.filter((field) => field.id !== id));
   }, []);
@@ -208,6 +266,7 @@ function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
       name: `Field${currentFields.length + 1}`,
       length: 1,
       isVariable: false,
+      valueFormat: 'dec',
       valueType: 'text',
       value: '',
     };
@@ -246,11 +305,16 @@ function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
             const updates: Partial<ProtocolField> = { isVariable: isChecked };
 
             if (isChecked) {
-              // 勾选 Variable：将 hex 转换为 text
+              // 勾选 Variable
               updates.valueType = 'text';
+              updates.valueFormat = undefined;  // 清除非 Variable 的属性
 
               if (record.value) {
-                const textValue = hexToText(record.value);
+                // 如果是 DEC 模式，需要先转 HEX 再转 Text
+                const hexValue = record.valueFormat === 'dec'
+                  ? decToHex(record.value, record.length || 1).replace(/\s/g, '')
+                  : record.value;
+                const textValue = hexToText(hexValue);
                 updates.value = textValue;
                 updates.length = calculateByteLength(textValue, 'text', true);
               } else {
@@ -258,12 +322,13 @@ function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
                 updates.length = 0;
               }
             } else {
-              // 取消勾选 Variable：将 text/hex 转换为纯净 hex
+              // 取消勾选 Variable
               updates.valueType = undefined;
+              updates.valueFormat = 'dec';  // 设置默认 DEC 模式
 
               const cleanHex = toCleanHex(record.value, record.valueType);
-              updates.value = cleanHex;
-              updates.length = cleanHex ? Math.floor(cleanHex.length / 2) : 1;
+              updates.value = hexToDec(cleanHex);  // 转为 DEC 显示
+              updates.length = cleanHex ? Math.ceil(cleanHex.length / 2) : 1;
             }
 
             updateField(record.id, updates);
@@ -287,9 +352,18 @@ function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
               const newLength = value || 1;
               const updates: Partial<ProtocolField> = { length: newLength };
 
-              // 非 Variable 字段：调整值以匹配新长度
               if (record.value) {
-                updates.value = adjustHexToLength(record.value, newLength);
+                if (record.valueFormat === 'dec') {
+                  // DEC 模式：限制在范围内
+                  const maxVal = BigInt(2) ** BigInt(newLength * 8) - BigInt(1);
+                  const currentNum = BigInt(record.value || '0');
+                  if (currentNum > maxVal) {
+                    updates.value = maxVal.toString();
+                  }
+                } else {
+                  // HEX 模式：前面补零或截断
+                  updates.value = adjustHexToLength(record.value, newLength);
+                }
               }
 
               updateField(record.id, updates);
@@ -311,6 +385,11 @@ function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
         const displayValue = editingFields[record.id] !== undefined
           ? editingFields[record.id]
           : (() => {
+              if (!record.isVariable && record.valueFormat === 'dec') {
+                // DEC 模式直接显示
+                return text;
+              }
+              // HEX 模式或 Variable 字段格式化显示
               const shouldFormatHex = !record.isVariable || record.valueType === 'hex';
               if (text && shouldFormatHex && /^[0-9A-Fa-f\s]+$/.test(text)) {
                 const clean = text.replace(/\s/g, '');
@@ -321,10 +400,9 @@ function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
               return text;
             })();
 
-        const placeholder =
-          record.isVariable && record.valueType === 'text'
-            ? 'Enter text'
-            : 'Enter hex (e.g., 01 02 03)';
+        const placeholder = record.isVariable
+          ? (record.valueType === 'text' ? 'Enter text' : 'Enter hex (e.g., 01 02 03)')
+          : (record.valueFormat === 'dec' ? `Enter decimal (0-${getMaxDecValue(record.length || 1)})` : 'Enter hex (e.g., 01 02 03)');
 
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -337,7 +415,7 @@ function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
               className="protocol-field-input"
               style={{ flex: 1 }}
             />
-            {record.isVariable && (
+            {record.isVariable ? (
               <Button
                 type="text"
                 size="small"
@@ -352,7 +430,24 @@ function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
                   border: '1px solid #3e3e42',
                 }}
               >
-                {record.valueType === 'text' ? 'Text' : 'Hex'}
+                {record.valueType === 'text' ? 'TEX' : 'HEX'}
+              </Button>
+            ) : (
+              <Button
+                type="text"
+                size="small"
+                onClick={() => toggleValueFormat(record.id)}
+                style={{
+                  padding: '0 8px',
+                  height: 20,
+                  fontSize: fontSize-2,
+                  minWidth: 46,
+                  background: record.valueFormat === 'dec' ? '#3e3e42' : '#2d2d30',
+                  color: record.valueFormat === 'dec' ? '#cccccc' : '#858585',
+                  border: '1px solid #3e3e42',
+                }}
+              >
+                {record.valueFormat === 'dec' ? 'DEC' : 'HEX'}
               </Button>
             )}
           </div>
