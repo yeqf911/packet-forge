@@ -129,6 +129,7 @@ function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
       length: 1,
       isVariable: false,
       valueFormat: 'dec',
+      enabled: true,
       valueType: 'text',
       value: '',
     };
@@ -163,7 +164,7 @@ function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
   const handleValueChange = useCallback((id: string, inputValue: string, field: ProtocolField) => {
     // For non-variable fields
     if (!field.isVariable) {
-      if (field.valueFormat === 'dec') {
+      if ((field.valueFormat ?? 'dec') === 'dec') {
         // DEC 模式：只接受数字
         const filtered = inputValue.replace(/[^0-9]/g, '');
         setEditingFields(prev => ({ ...prev, [id]: filtered }));
@@ -225,7 +226,9 @@ function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
     const field = fieldsRef.current.find(f => f.id === id);
     if (!field || field.isVariable) return;
 
-    const newFormat = (field.valueFormat === 'hex') ? 'dec' : 'hex';
+    // Handle undefined: default to 'dec', so undefined → dec → hex toggle works
+    const currentFormat = field.valueFormat ?? 'dec';
+    const newFormat = currentFormat === 'hex' ? 'dec' : 'hex';
     let newValue = field.value;
 
     if (newFormat === 'dec') {
@@ -267,6 +270,7 @@ function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
       length: 1,
       isVariable: false,
       valueFormat: 'dec',
+      enabled: true,
       valueType: 'text',
       value: '',
     };
@@ -324,10 +328,10 @@ function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
             } else {
               // 取消勾选 Variable
               updates.valueType = undefined;
-              updates.valueFormat = 'dec';  // 设置默认 DEC 模式
+              updates.valueFormat = 'hex';  // 保持 HEX 显示
 
               const cleanHex = toCleanHex(record.value, record.valueType);
-              updates.value = hexToDec(cleanHex);  // 转为 DEC 显示
+              updates.value = cleanHex;  // 保持 hex 格式
               updates.length = cleanHex ? Math.ceil(cleanHex.length / 2) : 1;
             }
 
@@ -353,7 +357,7 @@ function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
               const updates: Partial<ProtocolField> = { length: newLength };
 
               if (record.value) {
-                if (record.valueFormat === 'dec') {
+                if ((record.valueFormat ?? 'dec') === 'dec') {
                   // DEC 模式：限制在范围内
                   const maxVal = BigInt(2) ** BigInt(newLength * 8) - BigInt(1);
                   const currentNum = BigInt(record.value || '0');
@@ -385,7 +389,7 @@ function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
         const displayValue = editingFields[record.id] !== undefined
           ? editingFields[record.id]
           : (() => {
-              if (!record.isVariable && record.valueFormat === 'dec') {
+              if (!record.isVariable && (record.valueFormat ?? 'dec') === 'dec') {
                 // DEC 模式直接显示
                 return text;
               }
@@ -402,7 +406,7 @@ function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
 
         const placeholder = record.isVariable
           ? (record.valueType === 'text' ? 'Enter text' : 'Enter hex (e.g., 01 02 03)')
-          : (record.valueFormat === 'dec' ? `Enter decimal (0-${getMaxDecValue(record.length || 1)})` : 'Enter hex (e.g., 01 02 03)');
+          : ((record.valueFormat ?? 'dec') === 'dec' ? `Enter decimal (0-${getMaxDecValue(record.length || 1)})` : 'Enter hex (e.g., 01 02 03)');
 
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -442,12 +446,12 @@ function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
                   height: 20,
                   fontSize: fontSize-2,
                   minWidth: 46,
-                  background: record.valueFormat === 'dec' ? '#3e3e42' : '#2d2d30',
-                  color: record.valueFormat === 'dec' ? '#cccccc' : '#858585',
+                  background: (record.valueFormat ?? 'dec') === 'dec' ? '#3e3e42' : '#2d2d30',
+                  color: (record.valueFormat ?? 'dec') === 'dec' ? '#cccccc' : '#858585',
                   border: '1px solid #3e3e42',
                 }}
               >
-                {record.valueFormat === 'dec' ? 'DEC' : 'HEX'}
+                {(record.valueFormat ?? 'dec') === 'dec' ? 'DEC' : 'HEX'}
               </Button>
             )}
           </div>
@@ -457,11 +461,16 @@ function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
     {
       title: 'Actions',
       key: 'action',
-      width: 100,
+      width: 120,
       render: (_: any, record: ProtocolField, index: number) => {
         const currentFields = fieldsRef.current;
         return (
-          <div style={{ display: 'flex', gap: 2 }}>
+          <div style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            <Checkbox
+              checked={record.enabled ?? true}
+              onChange={(e) => updateField(record.id, { enabled: e.target.checked })}
+              style={{ margin: '0px', paddingRight: '4px', }}
+            />
             <Tooltip title="Insert Below">
               <Button
                 type="text"
@@ -488,7 +497,7 @@ function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
                 icon={<ArrowDownOutlined />}
                 onClick={() => moveFieldDown(index)}
                 disabled={index === currentFields.length - 1}
-                style={{ color: index === currentFields.length - 1 ? '#555555' : '#cccccc' }}
+                style={{ color: index === currentFields.length - 1 ? '#555555' : '#cccccc', paddingRight: '2px' }}
               />
             </Tooltip>
             <Popconfirm
@@ -557,7 +566,7 @@ function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
           <div style={{ width: 100, padding: '8px', color: '#cccccc', fontSize, fontWeight: 500 }}>Variable</div>
           <div style={{ width: 80, padding: '8px', color: '#cccccc', fontSize, fontWeight: 500 }}>Length</div>
           <div style={{ flex: 1, padding: '8px', color: '#cccccc', fontSize, fontWeight: 500 }}>Value</div>
-          <div style={{ width: 100, padding: '8px', color: '#cccccc', fontSize, fontWeight: 500 }}>Actions</div>
+          <div style={{ width: 120, padding: '8px', color: '#cccccc', fontSize, fontWeight: 500 }}>Actions</div>
         </div>
         <div style={{
           flex: 1,
@@ -577,6 +586,11 @@ function ProtocolFieldEditor({ fields, onChange }: ProtocolFieldEditorProps) {
               background: '#252526',
             }}
             tableLayout="fixed"
+            onRow={(record) => ({
+              style: {
+                opacity: record.enabled === false ? 0.4 : 1,
+              },
+            })}
           />
         </div>
       </div>

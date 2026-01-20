@@ -370,6 +370,11 @@ export default function Messages() {
     // Convert protocol fields to hex string
     let hexData = '';
     for (const field of currentTab.protocolFields) {
+      // Skip disabled fields
+      if (field.enabled === false) {
+        continue;
+      }
+
       const value = field.value || '';
 
       // Handle variable-length fields
@@ -387,22 +392,31 @@ export default function Messages() {
       } else {
         // Handle fixed-length fields
         const fieldLength = field.length || 1;
-        if (/^[0-9A-Fa-f\s]+$/.test(value)) {
+        let cleanHex = '';
+
+        if (field.valueFormat === 'dec') {
+          // DEC format: convert decimal to hex
+          const num = BigInt(value || '0');
+          cleanHex = num.toString(16).toUpperCase().padStart(fieldLength * 2, '0');
+          cleanHex = cleanHex.slice(-fieldLength * 2); // Keep only last N bytes
+        } else if (/^[0-9A-Fa-f\s]+$/.test(value)) {
           // It's hex
-          const cleanHex = value.replace(/\s/g, '');
-          const paddedHex = cleanHex.padEnd(fieldLength * 2, '0');
-          hexData += paddedHex.substring(0, fieldLength * 2);
+          cleanHex = value.replace(/\s/g, '');
         } else {
           // It's text, convert to hex
           const bytes = new TextEncoder().encode(value);
           for (let i = 0; i < fieldLength; i++) {
             if (i < bytes.length) {
-              hexData += bytes[i].toString(16).padStart(2, '0');
+              cleanHex += bytes[i].toString(16).padStart(2, '0');
             } else {
-              hexData += '00';
+              cleanHex += '00';
             }
           }
         }
+
+        // Pad with zeros at the beginning (left padding) for hex values
+        const paddedHex = cleanHex.padStart(fieldLength * 2, '0');
+        hexData += paddedHex.slice(-fieldLength * 2);
       }
     }
     return hexData;
