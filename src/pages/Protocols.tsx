@@ -56,6 +56,7 @@ export default function Protocols() {
         length: f.length,
         isVariable: f.isVariable ?? false,
         valueType: f.valueType ?? 'hex',
+        valueFormat: f.valueFormat,
         value: f.value || '',
         description: f.description,
       })),
@@ -72,6 +73,7 @@ export default function Protocols() {
         length: field.length,
         isVariable: field.isVariable ?? false,
         valueType: field.valueType ?? 'hex',
+        valueFormat: field.valueFormat,
         value: field.value || '',
         description: field.description,
       }));

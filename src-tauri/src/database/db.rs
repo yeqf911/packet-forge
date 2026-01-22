@@ -63,6 +63,8 @@ impl Database {
         self.migrate_value_type_column()?;
         // Migrate: add value_format column if it doesn't exist
         self.migrate_value_format_column()?;
+        // Migrate: fix preset protocols value_format
+        self.migrate_preset_protocols_value_format()?;
 
         // Insert preset protocols if none exist
         self.insert_preset_protocols()?;
@@ -107,6 +109,20 @@ impl Database {
             )?;
         }
 
+        Ok(())
+    }
+
+    /// Migrate preset protocols to fix value_format for non-variable fields
+    fn migrate_preset_protocols_value_format(&self) -> Result<()> {
+        // Update all preset protocol fields where value_format is NULL or empty
+        // For non-variable fields, set value_format to 'hex'
+        self.conn.execute(
+            "UPDATE protocol_fields SET value_format = 'hex'
+             WHERE protocol_id LIKE 'preset_%'
+             AND is_variable = 0
+             AND (value_format IS NULL OR value_format = '')",
+            [],
+        )?;
         Ok(())
     }
 

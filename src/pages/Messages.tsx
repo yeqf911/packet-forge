@@ -341,6 +341,7 @@ export default function Messages() {
         length: field.length,
         isVariable: field.isVariable ?? false,
         valueType: field.valueType ?? 'hex',
+        valueFormat: field.valueFormat,
         value: field.value || '',
         description: field.description,
       }));
