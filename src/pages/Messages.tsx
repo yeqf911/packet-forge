@@ -516,6 +516,12 @@ export default function Messages() {
           const num = BigInt(value || '0');
           cleanHex = num.toString(16).toUpperCase().padStart(fieldLength * 2, '0');
           cleanHex = cleanHex.slice(-fieldLength * 2); // Keep only last N bytes
+        } else if (field.valueFormat === 'bin') {
+          // BIN format: convert binary to hex
+          const cleanBin = value.replace(/\s/g, '');
+          const num = BigInt('0b' + (cleanBin || '0'));
+          cleanHex = num.toString(16).toUpperCase().padStart(fieldLength * 2, '0');
+          cleanHex = cleanHex.slice(-fieldLength * 2); // Keep only last N bytes
         } else if (/^[0-9A-Fa-f\s]+$/.test(value)) {
           // It's hex
           cleanHex = value.replace(/\s/g, '');
